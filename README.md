@@ -43,3 +43,5 @@ Install the required Python libraries:
 ```bash
 pip3 install numpy matplotlib trimesh torchsummary glob
 ```
+
+The rest of the guidance for running the code is embedded in the classification and segmentation folders.

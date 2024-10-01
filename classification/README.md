@@ -1,5 +1,5 @@
 
-# Running the Classification Branch
+## Running the Classification Branch
 
 **Step 1: Download the Data**
 

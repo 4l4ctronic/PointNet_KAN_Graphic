@@ -172,7 +172,7 @@ class KAN(nn.Module):
         y = y.view(-1, self.outdim)
         return y
 
-###### Object: PointNetKAN (i.e., PointNet-KAN) ######
+###### Object: PointNetKAN for classification (i.e., PointNet-KAN) ######
 class PointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()

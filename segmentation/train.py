@@ -29,7 +29,6 @@ max_epochs = 200
 hdf5_data_dir = '/shapenet_part_seg_hdf5_data'
 TRAINING_FILE_LIST = os.path.join(hdf5_data_dir, 'train_hdf5_file_list.txt')
 VALIDATION_FILE_LIST = os.path.join(hdf5_data_dir, 'val_hdf5_file_list.txt')
-TESTING_FILE_LIST = os.path.join(hdf5_data_dir, 'test_hdf5_file_list.txt')
 
 def get_data_files(file_list):
     with open(file_list, 'r') as f:

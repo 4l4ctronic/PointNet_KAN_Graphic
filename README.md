@@ -41,7 +41,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 Install the required Python libraries:
 
 ```bash
-pip3 install numpy matplotlib trimesh torchsummary glob
+pip3 install numpy matplotlib trimesh torchsummary
 ```
 
 The rest of the guidance for running the code is embedded in the classification and segmentation folders.

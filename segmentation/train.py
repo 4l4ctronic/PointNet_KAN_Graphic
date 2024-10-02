@@ -294,7 +294,7 @@ for epoch in range(max_epochs):
 
     avg_val_loss = total_val_loss / len(val_loader)
 
-    print(f"Val Loss: {avg_val_loss:.4f}")
+    print(f"Epoch [{epoch + 1}/{max_epochs}], validation loss: {avg_val_loss:.4f}")
 
     if avg_val_loss < best_val_loss and epoch > 9:
         best_val_loss = avg_val_loss

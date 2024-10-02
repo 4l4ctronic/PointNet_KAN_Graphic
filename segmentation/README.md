@@ -13,6 +13,8 @@ Alternatively, you can download the dataset from these sources:
 - [Hugging Face](https://huggingface.co/)
 - [ShapeNet](https://shapenet.org/)
 
+The codes provided here are written to use the HDF5 format for ShapeNet Part segmentation (approximately 346MB).
+
 **Step 2: Run the Training Script**
 
 After downloading the data, you can run the training script:

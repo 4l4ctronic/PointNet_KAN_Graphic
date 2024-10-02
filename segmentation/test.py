@@ -183,11 +183,11 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
-# Function to one-hot encode class labels
+####### Function: to one-hot encode class labels #######
 def one_hot_encode(labels, num_classes):
     return torch.eye(num_classes, device=labels.device)[labels.long()]
 
-######################################
+####### Function: evaluate model #######
 def evaluate_model(loader, dataset_name=""):
     model.eval()
     object_miou = {}
@@ -272,8 +272,8 @@ def evaluate_model(loader, dataset_name=""):
     weighted_avg_miou = weighted_miou_sum / total_count if total_count > 0 else 0
     print(f"Weighted average mIoU for {dataset_name} set: {weighted_avg_miou:.4f}")
 
-###################################################
-# Load the best model
+
+####### load the model and evaluate it #######
 model.load_state_dict(torch.load(best_model_path))
 
 print("Evaluation on test set:")

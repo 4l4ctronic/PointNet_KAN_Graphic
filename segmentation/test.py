@@ -260,9 +260,8 @@ def evaluate_model(loader, dataset_name=""):
     weighted_avg_miou = weighted_miou_sum / total_count if total_count > 0 else 0
     print(f"Weighted average mIoU for {dataset_name} set: {weighted_avg_miou:.4f}")
 
-
 ####### load the model and evaluate it #######
-model.load_state_dict(torch.load(best_model_path))
+model.load_state_dict(torch.load('best_model.pth'))
 
 print("Evaluation on test set:")
 evaluate_model(test_loader, "test")

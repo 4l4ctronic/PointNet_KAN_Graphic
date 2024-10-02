@@ -201,35 +201,27 @@ def evaluate_model(loader, dataset_name=""):
                 batch_obj_labels.to(device),
             )
             
-            # Transpose batch_data to shape [batch, 3, num_points]
             batch_data = batch_data.transpose(1, 2)
 
             batch_obj_one_hot = one_hot_encode(batch_obj_labels, num_objects).to(device)
 
-            # Forward pass
             outputs = model(batch_data, batch_obj_one_hot)
 
-            # Permute outputs to shape [batch, num_points, output_channels]
             outputs = outputs.permute(0, 2, 1)
 
-            # Process each object in the batch individually
             for i, obj_label in enumerate(batch_obj_labels):
                 obj_label = obj_label.cpu().item()  # Convert tensor to scalar
 
-                # Get relevant parts for the object category
                 relevant_parts = object_part_mapping_numeric[obj_label]['parts']
 
-                # Mask the outputs to only include the relevant parts
                 masked_output = outputs[i, :, relevant_parts].cpu().numpy()  # Shape [num_points, num_relevant_parts]
 
-                # Remap the ground truth labels to match the relevant part indices
                 part_label_mapping = {orig_label: idx for idx, orig_label in enumerate(relevant_parts)}
                 remapped_labels = torch.clone(batch_labels[i]).cpu().numpy()  # Clone and move to CPU
                 
                 for orig_label, idx in part_label_mapping.items():
                     remapped_labels[remapped_labels == orig_label] = idx  # Remap the labels
 
-                # Calculate IoU for this object
                 ious = []
                 pred_labels = np.argmax(masked_output, axis=1)  # Get the predicted part labels for each point
                 for part in range(len(relevant_parts)):
@@ -244,21 +236,18 @@ def evaluate_model(loader, dataset_name=""):
                         # Handle the case where union is empty by assigning IoU = 1
                         ious.append(1.0)
 
-                # Calculate mIoU for this object
                 if ious:
                     obj_miou = np.mean(ious)
 
-                    # Store the results per object category
                     if obj_label not in object_miou:
                         object_miou[obj_label] = []
                         object_counts[obj_label] = 0
                     object_miou[obj_label].append(obj_miou)
                     object_counts[obj_label] += 1
 
-    # Calculate and print mIoU for each object category from Label 0 to Label 15
     weighted_miou_sum = 0
     total_count = 0
-    for obj_label in range(16):  # Ensure we iterate from Label 0 to Label 15
+    for obj_label in range(16): 
         if obj_label in object_miou:
             avg_miou = np.mean(object_miou[obj_label])
             count = object_counts[obj_label]
@@ -268,7 +257,6 @@ def evaluate_model(loader, dataset_name=""):
         else:
             print(f"Object Label {obj_label}: No data")
 
-    # Calculate and print weighted average mIoU
     weighted_avg_miou = weighted_miou_sum / total_count if total_count > 0 else 0
     print(f"Weighted average mIoU for {dataset_name} set: {weighted_avg_miou:.4f}")
 

@@ -1,4 +1,4 @@
-# Libraries
+###### Libraries ######
 import os
 import json
 import h5py
@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#Parameter setup
+###### Parameter setup ######
 num_points = 2048
 input_channels = 3 # (x,y,z)
 output_channels = 50  # totla number of parts in ShapeNet part
@@ -187,11 +187,11 @@ class PointNetKAN(nn.Module):
 
         return x
 
-####### Function: to one-hot encode class labels
+####### Function: to one-hot encode class labels ######
 def one_hot_encode(labels, num_classes):
     return torch.eye(num_classes, device=labels.device)[labels.long()]
 
-#### Function: compute loss
+###### Function: compute loss ######
 def compute_loss_for_relevant_parts(outputs, batch_seg_labels, batch_obj_labels, object_part_mapping_numeric, criterion):
     total_loss = 0 
 

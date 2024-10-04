@@ -102,6 +102,60 @@ test_dataset = TensorDataset(torch.tensor(test_data_sampled, dtype=torch.float32
 
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
 
+###### part color mapping ######
+part_color_mapping = {
+    0: [1.0, 0.0, 0.0],      # Bright Red
+    1: [0.0, 1.0, 0.0],      # Bright Green
+    2: [0.0, 0.0, 1.0],      # Bright Blue
+    3: [1.0, 1.0, 0.0],      # Yellow
+    4: [1.0, 0.0, 1.0],      # Magenta
+    5: [0.0, 1.0, 1.0],      # Cyan
+    6: [0.5, 0.0, 0.5],      # Dark Purple
+    7: [0.0, 0.5, 0.0],      # Dark Green
+    8: [0.5, 0.5, 0.0],      # Olive
+    9: [1.0, 0.65, 0.0],     # Orange
+   10: [0.0, 0.5, 0.5],      # Teal
+   11: [0.5, 0.0, 0.0],      # Dark Red
+   12: [0.8, 0.2, 0.0],      # Burnt Orange
+   13: [0.0, 0.8, 0.2],      # Lime Green
+   14: [0.2, 0.8, 0.0],      # Leaf Green
+   15: [0.0, 0.2, 0.8],      # Deep Blue
+   16: [0.8, 0.0, 0.2],      # Pinkish Red
+   17: [0.2, 0.0, 0.8],      # Violet
+   18: [0.0, 0.8, 0.8],      # Light Teal
+   19: [0.8, 0.8, 0.0],      # Light Yellow
+   20: [0.6, 0.4, 0.2],      # Brown
+   21: [0.2, 0.6, 0.4],      # Sea Green
+   22: [0.4, 0.2, 0.6],      # Lavender
+   23: [0.6, 0.2, 0.4],      # Rose
+   24: [0.4, 0.6, 0.2],      # Moss Green
+   25: [0.2, 0.4, 0.6],      # Sky Blue
+   26: [0.9, 0.1, 0.1],      # Bright Coral
+   27: [0.1, 0.9, 0.1],      # Bright Lime
+   28: [0.1, 0.1, 0.9],      # Deep Blue
+   29: [0.8, 0.1, 0.6],      # Fuchsia
+   30: [0.6, 0.8, 0.1],      # Chartreuse 
+   31: [0.1, 0.6, 0.8],      # Turquoise
+   32: [0.7, 0.3, 0.7],      # Orchid
+   33: [0.3, 0.7, 0.3],      # Mint Green
+   34: [0.7, 0.3, 0.3],      # Salmon
+   35: [0.3, 0.7, 0.7],      # Pale Cyan
+   36: [1.0, 0.5, 0.0],      # Bright Orange
+   37: [0.5, 0.5, 1.0],      # Light Blue
+   38: [1.0, 0.5, 0.5],      # Light Coral
+   39: [0.5, 1.0, 0.5],      # Pale Green
+   40: [0.5, 0.0, 1.0],      # Deep Purple
+   41: [0.5, 0.5, 0.0],      # Mustard
+   42: [1.0, 0.0, 0.5],      # Hot Pink
+   43: [0.5, 1.0, 0.0],      # Light Lime
+   44: [0.0, 1.0, 0.5],      # Emerald
+   45: [1.0, 0.8, 0.2],      # Golden Yellow
+   46: [0.5, 0.5, 0.8],      # Lavender Blue
+   47: [0.8, 0.5, 0.5],      # Dusty Rose
+   48: [0.5, 0.8, 0.5],      # Light Olive
+   49: [0.8, 0.5, 0.8]       # Light Magenta
+}
+
 ###### Object: KANshared (i.e., shared KAN) ######
 class JacobiKANLayer(nn.Module):
     def __init__(self, input_dim, output_dim, degree, a=ALPHA, b=BETA):

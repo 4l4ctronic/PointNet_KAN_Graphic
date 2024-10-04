@@ -20,13 +20,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Parameter Setting
 input_channels = 3  # x, y, z
-output_channels = 50  # number of parts
-num_objects = 16
-scaling = 5.0
-learning_rate = 0.001 
-ALPHA = -0.5
-BETA = -0.5
-poly_degree = 2
+output_channels = 50  # total number of parts in ShapeNet part
+num_objects = 16 # number of objects in ShapeNet part
+scaling = 5.0 # To control the size of tensor A in the manuscript
+ALPHA = -0.5 # \alpha in Jacaboi Polynomial
+BETA = -0.5 # \beta in Jacaboi Polynomial
+poly_degree = 2 # Polynomial degree of Jacaboi Polynomial
 
 # Define paths
 BASE_DIR = '/scratch/users/kashefi/Model10/Tseg1'

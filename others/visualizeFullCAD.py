@@ -67,11 +67,11 @@ def load_data_files(file_list):
     all_seg = np.concatenate(all_seg, axis=0)
     return all_data, all_label, all_seg
 
-# Load testing data
+
 test_files = get_data_files(TESTING_FILE_LIST)
 test_data, test_labels, test_seg = load_data_files(test_files)
 
-####
+
 part_color_mapping = {
     0: [1.0, 0.0, 0.0],      # Bright Red
     1: [0.0, 1.0, 0.0],      # Bright Green
@@ -126,7 +126,6 @@ part_color_mapping = {
 }
 
 
-# Custom Dataset class to handle variable-length point clouds
 class VariableLengthPointCloudDataset(Dataset):
     def __init__(self, data, seg_labels, obj_labels):
         self.data = data
@@ -137,9 +136,9 @@ class VariableLengthPointCloudDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        point_cloud = self.data[idx]  # shape [num_points, 3]
-        seg_label = self.seg_labels[idx]  # shape [num_points]
-        obj_label = self.obj_labels[idx]  # scalar
+        point_cloud = self.data[idx] 
+        seg_label = self.seg_labels[idx] 
+        obj_label = self.obj_labels[idx]  
 
         # Convert to torch tensors
         point_cloud = torch.tensor(point_cloud, dtype=torch.float32)
@@ -148,7 +147,6 @@ class VariableLengthPointCloudDataset(Dataset):
 
         return point_cloud, seg_label, obj_label
 
-# Custom collate function to handle variable-length data
 def variable_length_collate_fn(batch):
     point_clouds = []
     seg_labels = []
@@ -159,12 +157,10 @@ def variable_length_collate_fn(batch):
         seg_labels.append(seg_label)
         obj_labels.append(obj_label)
 
-    # Stack object labels into a tensor
     obj_labels = torch.stack(obj_labels)
 
     return point_clouds, seg_labels, obj_labels
 
-# Create the test dataset and loader
 test_dataset = VariableLengthPointCloudDataset(test_data, test_seg, test_labels)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, collate_fn=variable_length_collate_fn)
 
@@ -183,10 +179,9 @@ class JacobiKANLayer(nn.Module):
 
     def forward(self, x):
         batch_size, input_dim, num_points = x.shape
-        x = x.permute(0, 2, 1).contiguous()  # shape = (batch_size, num_points, input_dim)
+        x = x.permute(0, 2, 1).contiguous() 
         x = torch.tanh(x)  # Normalize x to [-1, 1]
 
-        # Initialize Jacobi polynomial tensors
         jacobi = torch.ones(batch_size, num_points, self.input_dim, self.degree + 1, device=x.device)
 
         if self.degree > 0:
@@ -199,8 +194,8 @@ class JacobiKANLayer(nn.Module):
             jacobi[:, :, :, i] = (A*x + B)*jacobi[:, :, :, i-1].clone() + C*jacobi[:, :, :, i-2].clone()
 
         # Compute the Jacobi interpolation
-        jacobi = jacobi.permute(0, 2, 3, 1)  # shape = (batch_size, input_dim, degree + 1, num_points)
-        y = torch.einsum('bids,iod->bos', jacobi, self.jacobi_coeffs)  # shape = (batch_size, output_dim, num_points)
+        jacobi = jacobi.permute(0, 2, 3, 1) 
+        y = torch.einsum('bids,iod->bos', jacobi, self.jacobi_coeffs) 
 
         return y
 
@@ -227,11 +222,9 @@ class PointNetKAN(nn.Module):
         class_label = class_label.view(-1, num_objects, 1)
         class_label = class_label.view(-1, class_label.size(1), 1).expand(-1, -1, x.size(2))
 
-        # Max pooling to get the global feature
         global_feature = F.max_pool1d(x, kernel_size=x.size(-1))
         global_feature = global_feature.view(-1, global_feature.size(1), 1).expand(-1, -1, x.size(2))
 
-        # Concatenate local and global features
         x = torch.cat([local_4, global_feature, class_label], dim=1)
 
         x = self.jacobikan9(x)
@@ -240,7 +233,6 @@ class PointNetKAN(nn.Module):
 
         return x
 
-# Helper functions for plotting and evaluation
 def rotate_90_degrees_x(points):
     rotation_matrix = np.array([[1, 0, 0],
                                 [0, 0, -1],
@@ -253,25 +245,19 @@ def create_category_folder(category_number):
         os.makedirs(category_folder)
     return category_folder
 
-
 def plot_point_cloud_with_labels(points, labels, save_path, obj_category, num_parts, dpi=300):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # Rotate points 90 degrees around x-axis
     rotated_points = rotate_90_degrees_x(points)
 
-    # Get the relevant parts for the object category
     relevant_parts = object_part_mapping_numeric[obj_category]['parts']
 
-    # Assign colors to each part based on the remapped part labels
     colors = np.array([part_color_mapping[relevant_parts[label]] for label in labels])
 
-    # Scatter plot for point cloud with the assigned colors
     scatter = ax.scatter(rotated_points[:, 0], rotated_points[:, 1], rotated_points[:, 2], 
                          c=colors, marker='o')
 
-    # Remove axis and background
     ax.set_axis_off()
     ax.set_facecolor('white')
     fig.patch.set_facecolor('white')
@@ -313,7 +299,6 @@ def evaluate_and_save_all_samples(loader, dataset_name="test"):
         for batch_data_list, batch_labels_list, batch_obj_labels in loader:
             batch_obj_labels = batch_obj_labels.to(device)
 
-            # Process each sample individually
             for data, labels, obj_label in zip(batch_data_list, batch_labels_list, batch_obj_labels):
                 data = data.to(device).unsqueeze(0).transpose(1, 2)  # [1, 3, num_points]
                 labels = labels.to(device)
@@ -328,47 +313,36 @@ def evaluate_and_save_all_samples(loader, dataset_name="test"):
                 obj_category = obj_label.item()
                 category_folder = create_category_folder(obj_category)
 
-                # Get the relevant parts for the object category from the dictionary
                 relevant_parts = object_part_mapping_numeric[obj_category]['parts']
                 num_parts = len(relevant_parts)
 
-                # Mask the outputs to only include the relevant parts
                 masked_output = outputs[:, relevant_parts].cpu().numpy()
 
-                # Remap the ground truth labels to match the relevant part indices
                 part_label_mapping = {orig_label: idx for idx, orig_label in enumerate(relevant_parts)}
                 remapped_labels = labels.cpu().numpy()
 
                 for orig_label, idx in part_label_mapping.items():
                     remapped_labels[remapped_labels == orig_label] = idx  # Remap the labels
 
-                # Get the predicted part labels
                 pred_labels_for_obj = np.argmax(masked_output, axis=1)
 
-                # Collect the point cloud and the labels
                 points = data.squeeze(0).transpose(0, 1).cpu().numpy()
                 gt_labels = remapped_labels
 
-                # Define file names for saving as PNG
                 sample_index = sample_count[obj_category]
                 gt_save_path = os.path.join(category_folder, f"GroundTruth_{sample_index}")
                 pred_save_path = os.path.join(category_folder, f"Prediction_{sample_index}")
 
-                # Plot and save ground truth with the correct number of parts
                 plot_point_cloud_with_labels(points, gt_labels, gt_save_path, obj_category, num_parts)
 
-                # Plot and save predictions with the correct number of parts
                 plot_point_cloud_with_labels(points, pred_labels_for_obj, pred_save_path, obj_category, num_parts)
 
-                sample_count[obj_category] += 1  # Increment the sample count for this category
+                sample_count[obj_category] += 1  
 
 # Load the model and evaluate
 model = PointNetKAN(input_channels, output_channels, scaling=scaling).to(device)
 model.load_state_dict(torch.load('best_model.pth'))
 model.eval()
 
-# Set the current directory to save the plots
 save_dir = os.getcwd()
-
-# Run evaluation and save the results for all categories
 evaluate_and_save_all_samples(test_loader, "test")

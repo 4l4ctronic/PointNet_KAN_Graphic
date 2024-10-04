@@ -1,3 +1,4 @@
+# Libraries
 import os
 import json
 import h5py
@@ -30,11 +31,9 @@ poly_degree = 2
 # Define paths
 BASE_DIR = '/scratch/users/kashefi/Model10/Tseg1'
 hdf5_data_dir = os.path.join(BASE_DIR, 'hdf5_data')
-TRAINING_FILE_LIST = os.path.join(hdf5_data_dir, 'train_hdf5_file_list.txt')
-VALIDATION_FILE_LIST = os.path.join(hdf5_data_dir, 'val_hdf5_file_list.txt')
 TESTING_FILE_LIST = os.path.join(hdf5_data_dir, 'test_hdf5_file_list.txt')
 
-# Load h5 file
+###### Data loading and data preparation ######
 def get_data_files(file_list):
     with open(file_list, 'r') as f:
         return [line.rstrip() for line in f]
@@ -71,7 +70,7 @@ def load_data_files(file_list):
 test_files = get_data_files(TESTING_FILE_LIST)
 test_data, test_labels, test_seg = load_data_files(test_files)
 
-
+###### part color mapping ######
 part_color_mapping = {
     0: [1.0, 0.0, 0.0],      # Bright Red
     1: [0.0, 1.0, 0.0],      # Bright Green

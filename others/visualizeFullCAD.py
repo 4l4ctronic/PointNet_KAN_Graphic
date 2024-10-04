@@ -230,6 +230,7 @@ class PointNetKAN(nn.Module):
 
         return x
 
+#### plotting tools and functions ####
 def rotate_90_degrees_x(points):
     rotation_matrix = np.array([[1, 0, 0],
                                 [0, 0, -1],

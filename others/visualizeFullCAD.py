@@ -139,7 +139,6 @@ class VariableLengthPointCloudDataset(Dataset):
         seg_label = self.seg_labels[idx] 
         obj_label = self.obj_labels[idx]  
 
-        # Convert to torch tensors
         point_cloud = torch.tensor(point_cloud, dtype=torch.float32)
         seg_label = torch.tensor(seg_label, dtype=torch.long)
         obj_label = torch.tensor(obj_label, dtype=torch.long)
@@ -163,7 +162,7 @@ def variable_length_collate_fn(batch):
 test_dataset = VariableLengthPointCloudDataset(test_data, test_seg, test_labels)
 test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, collate_fn=variable_length_collate_fn)
 
-# Define the PointNetKAN Model
+###### Object: KANshared (i.e., shared KAN) ######
 class JacobiKANLayer(nn.Module):
     def __init__(self, input_dim, output_dim, degree, a=ALPHA, b=BETA):
         super(JacobiKANLayer, self).__init__()
@@ -198,6 +197,7 @@ class JacobiKANLayer(nn.Module):
 
         return y
 
+###### Object: PointNetKAN for segmentation (i.e., PointNet-KAN) ######
 class PointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=1.0):
         super(PointNetKAN, self).__init__()
@@ -338,7 +338,8 @@ def evaluate_and_save_all_samples(loader, dataset_name="test"):
 
                 sample_count[obj_category] += 1  
 
-# Load the model and evaluate
+###### Load the model and evaluate ######
+######  PointNet-KAN Model ######
 model = PointNetKAN(input_channels, output_channels, scaling=scaling).to(device)
 model.load_state_dict(torch.load('best_model.pth'))
 model.eval()

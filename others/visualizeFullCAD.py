@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from torch.utils.data import DataLoader, Dataset
 
-
+# Device setting
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Parameter Setting
@@ -27,12 +27,11 @@ ALPHA = -0.5 # \alpha in Jacaboi Polynomial
 BETA = -0.5 # \beta in Jacaboi Polynomial
 poly_degree = 2 # Polynomial degree of Jacaboi Polynomial
 
-# Define paths
-BASE_DIR = '/scratch/users/kashefi/Model10/Tseg1'
-hdf5_data_dir = os.path.join(BASE_DIR, 'hdf5_data')
-TESTING_FILE_LIST = os.path.join(hdf5_data_dir, 'test_hdf5_file_list.txt')
 
 ###### Data loading and data preparation ######
+hdf5_data_dir = '/shapenet_part_seg_hdf5_data'
+TESTING_FILE_LIST = os.path.join(hdf5_data_dir, 'test_hdf5_file_list.txt')
+
 def get_data_files(file_list):
     with open(file_list, 'r') as f:
         return [line.rstrip() for line in f]

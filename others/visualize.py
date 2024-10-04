@@ -11,6 +11,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
+#Device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #Parameter setup
@@ -249,62 +250,9 @@ object_part_mapping_numeric = {
     15: {'num_parts': 3, 'parts': [47, 48, 49]}    # Table
 }
 
-##############################
-
+######  PointNet-KAN Model ######
 model = PointNetKAN(input_channels, output_channels, scaling=scaling)
 model = model.to(device)
-
-# Function to calculate mIoU
-def calculate_miou(all_preds, all_labels, output_channels):
-    all_preds = np.concatenate(all_preds, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    pred_labels = np.argmax(all_preds, axis=2)  # Get the predicted class for each point
-    
-    ious = []
-    for cls in range(output_channels):
-        pred_mask = (pred_labels == cls)
-        label_mask = (all_labels == cls)
-        intersection = np.sum(pred_mask & label_mask)
-        union = np.sum(pred_mask | label_mask)
-        if union > 0:
-            ious.append(intersection / union)
-    
-    miou = np.mean(ious)
-    return miou, ious
-
-
-def calculate_miou_per_object(all_preds, all_labels, all_obj_labels, output_channels):
-    all_preds = np.concatenate(all_preds, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    all_obj_labels = np.concatenate(all_obj_labels, axis=0).flatten()
-    pred_labels = np.argmax(all_preds, axis=2)  # Get the predicted class for each point
-    
-    object_miou = {}
-    object_counts = {}
-    
-    for obj_label in np.unique(all_obj_labels):
-        # Create a mask where the object labels match the current object
-        obj_mask = all_obj_labels == obj_label
-        
-        # Use obj_mask to select corresponding predictions and true labels
-        obj_pred_labels = pred_labels[obj_mask]
-        obj_true_labels = all_labels[obj_mask]
-
-        ious = []
-        for cls in range(output_channels):
-            pred_mask = (obj_pred_labels == cls)
-            label_mask = (obj_true_labels == cls)
-            intersection = np.sum(pred_mask & label_mask)
-            union = np.sum(pred_mask | label_mask)
-            if union > 0:
-                ious.append(intersection / union)
-        
-        miou = np.mean(ious)
-        object_miou[obj_label] = miou
-        object_counts[obj_label] = np.sum(obj_mask)
-
-    return object_miou, object_counts
-
 
 # Function to one-hot encode class labels
 def one_hot_encode(labels, num_classes):
@@ -347,7 +295,6 @@ def plot_point_cloud_with_labels(points, labels, save_path, obj_category, num_pa
     plt.savefig(f"{save_path}.png", format='png', dpi=dpi, bbox_inches='tight', pad_inches=0)
     plt.close(fig)
 
-
 def evaluate_and_save_all_samples(loader, dataset_name="test"):
     model.eval()
     sample_count = {i: 0 for i in range(16)} 
@@ -379,7 +326,7 @@ def evaluate_and_save_all_samples(loader, dataset_name="test"):
                 remapped_labels = torch.clone(batch_labels[i]).cpu().numpy()
 
                 for orig_label, idx in part_label_mapping.items():
-                    remapped_labels[remapped_labels == orig_label] = idx  # Remap the labels
+                    remapped_labels[remapped_labels == orig_label] = idx 
 
                 pred_labels_for_obj = np.argmax(masked_output, axis=1)
 

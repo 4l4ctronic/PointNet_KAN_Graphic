@@ -21,7 +21,8 @@ from torch.optim.lr_scheduler import ExponentialLR
 
 #Parameter setup
 
-NUM_POINTS = 1024 
+NUM_POINTS = 1024
+NUM_POINTS_Test = 768 # 512, 384, 256, 192, 128
 NUM_CLASSES = 40 # ModelNet40
 BATCH_SIZE = 64 
 poly_degree = 4 # Polynomial degree of Jacaboi Polynomial
@@ -33,7 +34,7 @@ MAX_EPOCHS = 300
 direction = '/ModelNet40'
 
 ###### Function: parse_dataset ######
-def parse_dataset(N1, N2):
+def parse_dataset(N1=NUM_POINTS, N2=NUM_POINTS_Test):
     train_points = [] 
     train_labels = []
     test_points = [] 
@@ -188,7 +189,7 @@ class PointNetKAN(nn.Module):
 
 ###### Loading data, setting devices ######
 
-train_points, test_points, train_labels, test_labels, CLASS_MAP = parse_dataset(N1=1024, N2=512)
+train_points, test_points, train_labels, test_labels, CLASS_MAP = parse_dataset(N1=NUM_POINTS, N2=NUM_POINTS_Test)
 
 train_dataset = PointCloudDataset(train_points, train_labels)
 test_dataset = PointCloudDataset(test_points, test_labels)

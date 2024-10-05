@@ -213,7 +213,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, betas=(0.9, 0.999), 
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
 ###### Training ######
-
 for epoch in range(MAX_EPOCHS):
     model.train() 
     running_loss = 0.0

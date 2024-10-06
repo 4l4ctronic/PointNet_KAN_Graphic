@@ -1,6 +1,4 @@
 
-# README
-
 ## Overview
 This folder contains several useful Python scripts designed to aid in the visualization and robustness testing of 3D part segmentation and classification models.
 

@@ -92,7 +92,7 @@ class KAN(nn.Module):
 ##### Deep Point Net KAN without T-Nets ##### 
 class DeepPointNetKAN1(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
-        super(PointNetKAN, self).__init__()
+        super(DeepPointNetKAN1, self).__init__()
 
         #Shared KAN (64, 64)
         self.jacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
@@ -152,7 +152,7 @@ class DeepPointNetKAN1(nn.Module):
 ##### Deep Point Net KAN with T-Nets ##### 
 class DeepPointNetKAN2(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
-        super(PointNetKAN, self).__init__()
+        super(DeepPointNetKAN2, self).__init__()
 
         #Shared KAN (64, 64)
         self.jacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)

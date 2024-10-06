@@ -90,7 +90,7 @@ class KAN(nn.Module):
 ###### Deep PointNet KAN For Segmentation ###### 
 class DeepPointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
-        super(PointNetKAN, self).__init__()
+        super(DeepPointNetKAN, self).__init__()
 
         #Shared KAN (64, 64, 128)
         self.jacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)

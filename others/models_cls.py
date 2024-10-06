@@ -148,4 +148,157 @@ class DeepPointNetKAN1(nn.Module):
         x = self.jacobikan8(x)
   
         return x
+        
+##### Deep Point Net KAN with T-Nets ##### 
+class PointNetKAN2(nn.Module):
+    def __init__(self, input_channels, output_channels, scaling=SCALE):
+        super(PointNetKAN, self).__init__()
+
+        #Shared KAN (64, 64)
+        self.jacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
+        self.jacobikan2 = KANshared(int(64 * scaling), int(64 * scaling), poly_degree)
+
+        #Shared KAN (64, 128, 1024)
+        self.jacobikan3 = KANshared(int(64 * scaling), int(64 * scaling), poly_degree)
+        self.jacobikan4 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
+        self.jacobikan5 = KANshared(int(128 * scaling), int(1024 * scaling), poly_degree)
+
+        #Shared KAN (512, 256, num_classes)
+        self.jacobikan6 = KAN(int(1024 * scaling), int(512 * scaling), poly_degree)
+        self.jacobikan7 = KAN(int(512 * scaling), int(256 * scaling), poly_degree)
+        self.jacobikan8 = KAN(int(256 * scaling), output_channels, poly_degree)
+
+        #Batch Normalization
+        self.bn1 = nn.BatchNorm1d(int(64 * scaling))
+        self.bn2 = nn.BatchNorm1d(int(64 * scaling))
+        self.bn3 = nn.BatchNorm1d(int(64 * scaling))
+        self.bn4 = nn.BatchNorm1d(int(128 * scaling))
+        self.bn5 = nn.BatchNorm1d(int(1024 * scaling))
+        self.bn6 = nn.BatchNorm1d(int(512 * scaling))
+        self.bn7 = nn.BatchNorm1d(int(256 * scaling))
+
+        #DropOut Layer
+        self.dropout1 = nn.Dropout(0.3)
+        self.dropout2 = nn.Dropout(0.3)
+
+        #SoftMax Function
+        self.softmax = nn.Softmax(dim=1)
+
+        #input_transform
+        self.ITjacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
+        self.ITjacobikan2 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
+        self.ITjacobikan3 = KANshared(int(128 * scaling), int(1024 * scaling), poly_degree)
+
+        self.ITbn1 = nn.BatchNorm1d(int(64 * scaling))
+        self.ITbn2 = nn.BatchNorm1d(int(128 * scaling))
+        self.ITbn3 = nn.BatchNorm1d(int(1024 * scaling))
+
+        self.ITjacobikan4 = KAN(int(1024 * scaling), int(512 * scaling), poly_degree)
+        self.ITjacobikan5 = KAN(int(512 * scaling), int(256 * scaling), poly_degree)
+
+        self.ITbn4 = nn.BatchNorm1d(int(512 * scaling))
+        self.ITbn5 = nn.BatchNorm1d(int(256 * scaling))
+
+        self.ITjacobikan6 = KAN(int(256 * scaling), 3 * 3,  poly_degree)
+
+        self.ITbn6 = nn.BatchNorm1d(3*3)
+
+        #feature_transform
+        self.FTjacobikan1 = KANshared(int(64 * scaling), int(64 * scaling), poly_degree)
+        self.FTjacobikan2 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
+        self.FTjacobikan3 = KANshared(int(128 * scaling), int(1024 * scaling), poly_degree)
+
+        self.FTbn1 = nn.BatchNorm1d(int(64 * scaling))
+        self.FTbn2 = nn.BatchNorm1d(int(128 * scaling))
+        self.FTbn3 = nn.BatchNorm1d(int(1024 * scaling))
+
+        self.FTjacobikan4 = KAN(int(1024 * scaling), int(512 * scaling), poly_degree)
+        self.FTjacobikan5 = KAN(int(512 * scaling), int(256 * scaling), poly_degree)
+
+        self.FTbn4 = nn.BatchNorm1d(int(512 * scaling))
+        self.FTbn5 = nn.BatchNorm1d(int(256 * scaling))
+
+        self.FTjacobikan6 = KAN(int(256 * scaling), 64 * 64, poly_degree)
+
+        self.FTbn6 = nn.BatchNorm1d(64 * 64)
+
+    def forward(self, x):
+
+        The_intput = x
+
+        # Input Transform
+        batch_size = x.size(0)
+        x = self.ITjacobikan1(x)
+        x = self.ITbn1(x)
+        x = self.ITjacobikan2(x)
+        x = self.ITbn2(x)
+        x = self.ITjacobikan3(x)
+        x = self.ITbn3(x)
+
+        The_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
+
+        x = self.ITjacobikan4(The_feature)
+        x = self.ITbn4(x)
+        x = self.ITjacobikan5(x)
+        x = self.ITbn5(x)
+        x = self.ITjacobikan6(x)
+        x = self.ITbn6(x)
+        # No batch after that?!!
+
+        # Reshape to (batch_size, num_features, num_features)
+        x = x.view(batch_size, 3, 3)
+        x = torch.bmm(The_intput.transpose(1, 2), x).transpose(1, 2)
+        # End of Input Transform
+
+        # Shared KAN (64, 64)
+        x = self.jacobikan1(x)
+        x = self.bn1(x)
+        x = self.jacobikan2(x)
+        x = self.bn2(x)
+
+        The_intermeidate = x
+
+        # Feature Transform
+        x = self.FTjacobikan1(x)
+        x = self.FTbn1(x)
+        x = self.FTjacobikan2(x)
+        x = self.FTbn2(x)
+        x = self.FTjacobikan3(x)
+        x = self.FTbn3(x)
+
+        The_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
+
+        x = self.FTjacobikan4(The_feature)
+        x = self.FTbn4(x)
+        x = self.FTjacobikan5(x)
+        x = self.FTbn5(x)
+        x = self.FTjacobikan6(x)
+        x = self.FTbn6(x)
+
+        x = x.view(batch_size, 64, 64)
+        x = torch.bmm(The_intermeidate.transpose(1, 2), x).transpose(1, 2)
+        # End of Input Transform
+
+        # Shared KAN (64, 128, 1024)
+        x = self.jacobikan3(x)
+        x = self.bn3(x)
+        x = self.jacobikan4(x)
+        x = self.bn4(x)
+        x = self.jacobikan5(x)
+        x = self.bn5(x)
+
+        # Max pooling to get the global feature
+        global_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
+        #global_feature = global_feature.view(-1, global_feature.size(1), 1).expand(-1, -1, NUM_POINTS)
+
+        # KAN (512, 256, num_classes)
+        x = self.jacobikan6(global_feature)
+        x = self.bn6(x)
+        x = self.dropout1(x)
+        x = self.jacobikan7(x)
+        x = self.bn7(x)
+        x = self.dropout2(x)
+        x = self.jacobikan8(x)
+
+        return x
 

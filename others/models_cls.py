@@ -232,7 +232,7 @@ class DeepPointNetKAN2(nn.Module):
         x = self.ITjacobikan3(x)
         x = self.ITbn3(x)
 
-        The_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
+        The_feature = F.max_pool1d(x, kernel_size=x.size(-1)).squeeze(-1)
 
         x = self.ITjacobikan4(The_feature)
         x = self.ITbn4(x)
@@ -240,7 +240,6 @@ class DeepPointNetKAN2(nn.Module):
         x = self.ITbn5(x)
         x = self.ITjacobikan6(x)
         x = self.ITbn6(x)
-        # No batch after that?!!
 
         # Reshape to (batch_size, num_features, num_features)
         x = x.view(batch_size, FEATURE, FEATURE)
@@ -263,7 +262,7 @@ class DeepPointNetKAN2(nn.Module):
         x = self.FTjacobikan3(x)
         x = self.FTbn3(x)
 
-        The_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
+        The_feature = F.max_pool1d(x, kernel_size=x.size(-1)).squeeze(-1)
 
         x = self.FTjacobikan4(The_feature)
         x = self.FTbn4(x)
@@ -285,8 +284,7 @@ class DeepPointNetKAN2(nn.Module):
         x = self.bn5(x)
 
         # Max pooling to get the global feature
-        global_feature = F.max_pool1d(x, kernel_size=NUM_POINTS)
-        #global_feature = global_feature.view(-1, global_feature.size(1), 1).expand(-1, -1, NUM_POINTS)
+        global_feature =  F.max_pool1d(x, kernel_size=x.size(-1)).squeeze(-1)
 
         # KAN (512, 256, num_classes)
         x = self.jacobikan6(global_feature)

@@ -13,7 +13,6 @@ import linecache
 from operator import itemgetter
 from numpy import zeros
 
-
 #Parameter setup
 NUM_POINTS = 1024 
 NUM_CLASSES = 40 # ModelNet40

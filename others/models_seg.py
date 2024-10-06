@@ -93,19 +93,19 @@ class DeepPointNetKAN(nn.Module):
         super(PointNetKAN, self).__init__()
 
         #Shared KAN (64, 64, 128)
-        self.jacobikan1 = JacobiKANLayer(input_channels, int(64 * scaling), poly_degree)
-        self.jacobikan2 = JacobiKANLayer(int(64 * scaling), int(64 * scaling), poly_degree)
-        self.jacobikan3 = JacobiKANLayer(int(64 * scaling), int(128 * scaling), poly_degree)
+        self.jacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
+        self.jacobikan2 = KANshared(int(64 * scaling), int(64 * scaling), poly_degree)
+        self.jacobikan3 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
 
         #Shared KAN (128, 512, max pool 2048)
-        self.jacobikan4 = JacobiKANLayer(int(128 * scaling), int(512 * scaling), poly_degree)
-        self.jacobikan5 = JacobiKANLayer(int(512 * scaling), int(2048 * scaling), poly_degree)
+        self.jacobikan4 = KANshared(int(128 * scaling), int(512 * scaling), poly_degree)
+        self.jacobikan5 = KANshared(int(512 * scaling), int(2048 * scaling), poly_degree)
         
         #Shared KAN (512, 256, 128, output_channels)
-        self.jacobikan6 = JacobiKANLayer(int(2048 * scaling) + 14*int(64 * scaling) + int(num_objects), int(512 * scaling), poly_degree)
-        self.jacobikan7 = JacobiKANLayer(int(512 * scaling), int(256 * scaling), poly_degree)
-        self.jacobikan8 = JacobiKANLayer(int(256 * scaling), int(128 * scaling), poly_degree)
-        self.jacobikan9 = JacobiKANLayer(int(128 * scaling), output_channels, poly_degree)
+        self.jacobikan6 = KANshared(int(2048 * scaling) + 14*int(64 * scaling) + int(num_objects), int(512 * scaling), poly_degree)
+        self.jacobikan7 = KANshared(int(512 * scaling), int(256 * scaling), poly_degree)
+        self.jacobikan8 = KANshared(int(256 * scaling), int(128 * scaling), poly_degree)
+        self.jacobikan9 = KANshared(int(128 * scaling), output_channels, poly_degree)
         
         #Batch Normalization
         self.bn1 = nn.BatchNorm1d(int(64 * scaling))
@@ -118,9 +118,9 @@ class DeepPointNetKAN(nn.Module):
         self.bn8 = nn.BatchNorm1d(int(128 * scaling))
  
         #input_transform
-        self.ITjacobikan1 = JacobiKANLayer(input_channels, int(64 * scaling), poly_degree)
-        self.ITjacobikan2 = JacobiKANLayer(int(64 * scaling), int(128 * scaling), poly_degree)
-        self.ITjacobikan3 = JacobiKANLayer(int(128 * scaling), int(1024 * scaling), poly_degree)
+        self.ITjacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
+        self.ITjacobikan2 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
+        self.ITjacobikan3 = KANshared(int(128 * scaling), int(1024 * scaling), poly_degree)
 
         self.ITbn1 = nn.BatchNorm1d(int(64 * scaling))
         self.ITbn2 = nn.BatchNorm1d(int(128 * scaling))
@@ -137,9 +137,9 @@ class DeepPointNetKAN(nn.Module):
         self.ITbn6 = nn.BatchNorm1d(Feature * Feature)
 
         #feature_transform
-        self.FTjacobikan1 = JacobiKANLayer(int(128 * scaling), int(128 * scaling), poly_degree)
-        self.FTjacobikan2 = JacobiKANLayer(int(128 * scaling), int(128 * scaling), poly_degree)
-        self.FTjacobikan3 = JacobiKANLayer(int(128 * scaling), int(1024 * scaling), poly_degree)
+        self.FTjacobikan1 = KANshared(int(128 * scaling), int(128 * scaling), poly_degree)
+        self.FTjacobikan2 = KANshared(int(128 * scaling), int(128 * scaling), poly_degree)
+        self.FTjacobikan3 = KANshared(int(128 * scaling), int(1024 * scaling), poly_degree)
 
         self.FTbn1 = nn.BatchNorm1d(int(128 * scaling))
         self.FTbn2 = nn.BatchNorm1d(int(128 * scaling))

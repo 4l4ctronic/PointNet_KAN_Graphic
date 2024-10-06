@@ -8,8 +8,8 @@ This folder contains several useful Python scripts designed to aid in the visual
 
 **`robustness.py`** tests the robustness of the model specifically for the classification problem. You can drop the number of points during testing (modify the value of `N2` in the code) to assess how the model performs when fewer points are available. Use this script to evaluate how the model behaves when objects have incomplete or reduced point sets in the test set. In `robustness.py`, make sure to set the correct path for the variable `direction`, which should point to the location where the ModelNet40 data is downloaded.
 
-**`models_cls.py`** contains two types of models that resemble the classification branch of PointNet with MLP. These models are deep, with and without T-Nets, and are similar to the classification branch of PointNet (see Fig. 2 in [this paper](https://arxiv.org/pdf/1612.00593)).
+**`models_cls.py`** contains two types of models that resemble the classification branch of PointNet with MLPs. However, instead of using MLPs, we embed KANs. These models are deep, with and without T-Nets, and are similar to the classification branch of PointNet (see Fig. 2 in [this paper](https://arxiv.org/pdf/1612.00593)).
 
-**`models_seg.py`** contains two types of models that resemble the segmentation branch of PointNet with MLP. These models are deep, with and without T-Nets, and are similar to the segmentation branch of PointNet (see Fig. 9 in [this paper](https://arxiv.org/pdf/1612.00593)).
+**`models_seg.py`** contains two types of models that resemble the segmentation branch of PointNet with MLPs. However, instead of using MLPs, we embed KANs. These models are deep, with and without T-Nets, and are similar to the segmentation branch of PointNet (see Fig. 9 in [this paper](https://arxiv.org/pdf/1612.00593)).
 
 

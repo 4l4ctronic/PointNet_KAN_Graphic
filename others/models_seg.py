@@ -18,7 +18,7 @@ NUM_POINTS = 1024
 poly_degree = 4 # Polynomial degree of Jacaboi Polynomial
 ALPHA = 1.0 # \alpha in Jacaboi Polynomial
 BETA = 1.0 # \beta in Jacaboi Polynomial
-SCALE = 3.0 # To control the size of tensor A in the manuscript
+SCALE = 1.0 # To control the size of tensor A in the manuscript
 Feature = 3 # (x,y,z)
 
 ###### Object: KANshared (i.e., shared KAN) ######
@@ -55,7 +55,7 @@ class KANshared(nn.Module):
         return y
 
 class PointNetKAN(nn.Module):
-    def __init__(self, input_channels, output_channels, scaling=1.0):
+    def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()
 
         #Shared KAN (64, 64, 128)

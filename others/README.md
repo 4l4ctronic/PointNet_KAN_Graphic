@@ -17,8 +17,3 @@ For both `visualize.py` and `visualizeFullCAD.py`, ensure that the model trained
 ### Robustness Testing
 In `robustness.py`, you can experiment with different values of `N2` to simulate a scenario where the number of points per object is reduced, and test how robust the classification model is under such conditions.
 
-
-## Usage
-- For 3D part segmentation visualizations:
-  ```bash
-  python visualize.py

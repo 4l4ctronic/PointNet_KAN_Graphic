@@ -54,8 +54,40 @@ class KANshared(nn.Module):
         y = torch.einsum('bids,iod->bos', jacobi, self.jacobi_coeffs) 
         return y
 
-####################################################
-###### Deep PointNet KAN ###### 
+###### Object: KAN ######
+class KAN(nn.Module):
+    def __init__(self, input_dim, output_dim, degree, a=ALPHA, b=BETA):
+        super(KAN, self).__init__()
+        self.inputdim = input_dim
+        self.outdim   = output_dim
+        self.a        = a
+        self.b        = b
+        self.degree   = degree
+
+        self.jacobi_coeffs = nn.Parameter(torch.empty(input_dim, output_dim, degree + 1))
+
+        nn.init.normal_(self.jacobi_coeffs, mean=0.0, std=1/(input_dim * (degree + 1)))
+
+    def forward(self, x):
+        x = torch.reshape(x, (-1, self.inputdim)) 
+        
+        x = torch.tanh(x)
+        
+        jacobi = torch.ones(x.shape[0], self.inputdim, self.degree + 1, device=x.device)
+        if self.degree > 0:
+            jacobi[:, :, 1] = ((self.a - self.b) + (self.a + self.b + 2) * x) / 2
+
+        for i in range(2, self.degree + 1):
+            A = (2*i + self.a + self.b - 1)*(2*i + self.a + self.b)/((2*i) * (i + self.a + self.b))
+            B = (2*i + self.a + self.b - 1)*(self.a**2 - self.b**2)/((2*i)*(i + self.a + self.b)*(2*i+self.a+self.b-2))
+            C = -2*(i + self.a -1)*(i + self.b -1)*(2*i + self.a + self.b)/((2*i)*(i + self.a + self.b)*(2*i + self.a + self.b -2))
+            jacobi[:, :, i] = (A*x + B)*jacobi[:, :, i-1].clone() + C*jacobi[:, :, i-2].clone()
+
+        y = torch.einsum('bid,iod->bo', jacobi, self.jacobi_coeffs) 
+        y = y.view(-1, self.outdim)
+        return y
+
+###### Deep PointNet KAN For Segmentation ###### 
 class DeepPointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()
@@ -122,7 +154,6 @@ class DeepPointNetKAN(nn.Module):
         self.FTjacobikan6 = KAN(int(256 * scaling), 128 * 128, poly_degree)
 
         self.FTbn6 = nn.BatchNorm1d(128 * 128)
-
 
     def forward(self, x, class_label):
 

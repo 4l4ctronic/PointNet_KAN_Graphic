@@ -150,7 +150,7 @@ class DeepPointNetKAN1(nn.Module):
         return x
         
 ##### Deep Point Net KAN with T-Nets ##### 
-class PointNetKAN2(nn.Module):
+class DeepPointNetKAN2(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()
 
@@ -181,9 +181,6 @@ class PointNetKAN2(nn.Module):
         self.dropout1 = nn.Dropout(0.3)
         self.dropout2 = nn.Dropout(0.3)
 
-        #SoftMax Function
-        self.softmax = nn.Softmax(dim=1)
-
         #input_transform
         self.ITjacobikan1 = KANshared(input_channels, int(64 * scaling), poly_degree)
         self.ITjacobikan2 = KANshared(int(64 * scaling), int(128 * scaling), poly_degree)
@@ -199,9 +196,9 @@ class PointNetKAN2(nn.Module):
         self.ITbn4 = nn.BatchNorm1d(int(512 * scaling))
         self.ITbn5 = nn.BatchNorm1d(int(256 * scaling))
 
-        self.ITjacobikan6 = KAN(int(256 * scaling), 3 * 3,  poly_degree)
+        self.ITjacobikan6 = KAN(int(256 * scaling), FEATURE * FEATURE,  poly_degree)
 
-        self.ITbn6 = nn.BatchNorm1d(3*3)
+        self.ITbn6 = nn.BatchNorm1d(FEATURE * FEATURE)
 
         #feature_transform
         self.FTjacobikan1 = KANshared(int(64 * scaling), int(64 * scaling), poly_degree)
@@ -246,7 +243,7 @@ class PointNetKAN2(nn.Module):
         # No batch after that?!!
 
         # Reshape to (batch_size, num_features, num_features)
-        x = x.view(batch_size, 3, 3)
+        x = x.view(batch_size, FEATURE, FEATURE)
         x = torch.bmm(The_intput.transpose(1, 2), x).transpose(1, 2)
         # End of Input Transform
 
@@ -301,4 +298,3 @@ class PointNetKAN2(nn.Module):
         x = self.jacobikan8(x)
 
         return x
-

@@ -54,7 +54,9 @@ class KANshared(nn.Module):
         y = torch.einsum('bids,iod->bos', jacobi, self.jacobi_coeffs) 
         return y
 
-class PointNetKAN(nn.Module):
+####################################################
+###### Deep PointNet KAN ###### 
+class DeepPointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()
 
@@ -73,7 +75,6 @@ class PointNetKAN(nn.Module):
         self.jacobikan8 = JacobiKANLayer(int(256 * scaling), int(128 * scaling), poly_degree)
         self.jacobikan9 = JacobiKANLayer(int(128 * scaling), output_channels, poly_degree)
         
-
         #Batch Normalization
         self.bn1 = nn.BatchNorm1d(int(64 * scaling))
         self.bn2 = nn.BatchNorm1d(int(64 * scaling))
@@ -84,7 +85,6 @@ class PointNetKAN(nn.Module):
         self.bn7 = nn.BatchNorm1d(int(256 * scaling))
         self.bn8 = nn.BatchNorm1d(int(128 * scaling))
  
-       
         #input_transform
         self.ITjacobikan1 = JacobiKANLayer(input_channels, int(64 * scaling), poly_degree)
         self.ITjacobikan2 = JacobiKANLayer(int(64 * scaling), int(128 * scaling), poly_degree)

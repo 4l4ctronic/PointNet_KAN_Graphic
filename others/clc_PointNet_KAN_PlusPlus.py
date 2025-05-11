@@ -160,26 +160,8 @@ class KAN(nn.Module):
         y = y.view(-1, self.outdim)
         return y
 
-###### Object: PointNetKAN (original) ######
-class PointNetKAN(nn.Module):
-    def __init__(self, input_channels, output_channels, scaling=SCALE):
-        super(PointNetKAN, self).__init__()
-        self.jacobikan5 = KANshared(input_channels, int(1024 * scaling), poly_degree)
-        self.jacobikan6 = KAN(int(1024 * scaling), output_channels, poly_degree)
-        self.bn5        = nn.BatchNorm1d(int(1024 * scaling))
-
-    def forward(self, x):
-        x = self.jacobikan5(x)
-        x = self.bn5(x)
-        global_feature = F.max_pool1d(x, kernel_size=x.size(-1)).squeeze(-1)
-        x = self.jacobikan6(global_feature)
-        return x
-
-
-# ----------- Begin PointNet++ Integration ------------
-
+###### Begin PointNet-KAN++ Functions ######
 def square_distance(src, dst):
-    """Calculate squared Euclid distance between each two points."""
     B, N, _ = src.shape
     _, M, _ = dst.shape
     dist = -2 * torch.matmul(src, dst.permute(0, 2, 1))
@@ -188,29 +170,16 @@ def square_distance(src, dst):
     return dist
 
 def index_points(points, idx):
-    """
-    Selects points from `points` according to `idx`.
-    points: (B, N, C)
-    idx:    (B, S1, S2, ..., Sk) indices into the N dimension
-    returns: (B, S1, S2, ..., Sk, C)
-    """
     B, N, C = points.shape
-    # make a batch index that has the same shape as idx
-    # e.g. if idx is (B, S) we want batch_indices of shape (B, S)
-    batch_shape = idx.shape  # (B, S1, S2, ..., Sk)
-    # we create a tensor [0,1,...,B-1] of shape (B,)
-    # then view it as (B,1,1,...,1) with k ones, and expand to batch_shape
+    batch_shape = idx.shape 
     device = points.device
     batch_indices = torch.arange(B, device=device) \
                         .view(B, *([1] * (idx.dim()-1))) \
                         .expand(batch_shape)
-    # now both batch_indices and idx are the same shape
-    # we can do pointwise gather:
     new_points = points[batch_indices, idx, :]  # (B, S1, S2, ..., Sk, C)
     return new_points
 
 def farthest_point_sample(xyz, npoint):
-    """Farthest point sampling."""
     B, N, C = xyz.shape
     centroids = torch.zeros(B, npoint, dtype=torch.long, device=xyz.device)
     distance = torch.ones(B, N, device=xyz.device) * 1e10
@@ -226,17 +195,14 @@ def farthest_point_sample(xyz, npoint):
     return centroids
 
 def query_ball_point(radius, nsample, xyz, new_xyz):
-    """Group points within radius."""
     sqrdists = square_distance(new_xyz, xyz)
     idx = sqrdists.sort(dim=-1)[1][:, :, :nsample]  # (B, S, nsample)
-    # handle out-of-radius points
     group_first = idx[:, :, 0:1].repeat(1, 1, nsample)
     mask = sqrdists.gather(2, idx) > radius ** 2
     idx[mask] = group_first[mask]
     return idx
 
 def sample_and_group(npoint, radius, nsample, xyz, points):
-    """Perform sampling and grouping for SA layer."""
     fps_idx = farthest_point_sample(xyz, npoint)
     new_xyz = index_points(xyz, fps_idx)                # (B, npoint, 3)
     idx     = query_ball_point(radius, nsample, xyz, new_xyz)
@@ -247,7 +213,6 @@ def sample_and_group(npoint, radius, nsample, xyz, points):
         new_points = torch.cat([grouped_xyz, grouped_points], dim=-1)  # (B, npoint, nsample, 3+D)
     else:
         new_points = grouped_xyz
-    # reshape to (B, 3+D, nsample, npoint)
     new_points = new_points.permute(0, 3, 2, 1)
     return new_xyz.permute(0, 2, 1), new_points  # new_xyz: (B,3,npoint)
 
@@ -268,19 +233,12 @@ class PointNetSetAbstraction(nn.Module):
             self.mlps.append(
                 KANshared(input_dim=last_channel,
                           output_dim=out_channel,
-                          degree=poly_degree)               # THIS IS SHARED
+                          degree=poly_degree)               
             )
             self.bns.append(nn.BatchNorm1d(out_channel))
             last_channel = out_channel
 
     def forward(self, xyz, points):
-        """
-        xyz:    (B, 3, N)
-        points: (B, D, N) or None
-        returns:
-          new_xyz:    (B, 3, S)
-          new_points: (B, mlp[-1], S)
-        """
         if self.group_all:
             # group_all: use all N points into one region
             B, _, N = xyz.shape

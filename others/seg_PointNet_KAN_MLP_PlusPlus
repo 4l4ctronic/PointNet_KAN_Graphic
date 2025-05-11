@@ -1,0 +1,369 @@
+###### Libraries ######
+import os
+import h5py
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+
+# Enable anomaly detection to pinpoint in-place errors
+torch.autograd.set_detect_anomaly(True)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+###### Parameter setup ######
+num_points      = 2048
+input_channels  = 3    # (x,y,z)
+output_channels = 50   # total number of parts in ShapeNet part
+num_objects     = 16   # number of object classes in ShapeNet part
+SCALE           = 1.0
+ALPHA           = -0.5
+BETA            = -0.5
+poly_degree     = 2
+batch_size      = 32
+max_epochs      = 200 #100
+
+###### Data loading ######
+hdf5_dir             = '/scratch/users/kashefi/KANmlp/hdf5_data'
+TRAIN_LIST_FILE      = os.path.join(hdf5_dir, 'train_hdf5_file_list.txt')
+VALIDATION_LIST_FILE = os.path.join(hdf5_dir, 'val_hdf5_file_list.txt')
+
+def get_file_list(path):
+    with open(path, 'r') as f:
+        return [line.strip() for line in f]
+
+def load_h5(fname):
+    full = os.path.join(hdf5_dir, fname)
+    print(f"Loading {full}")
+    with h5py.File(full, 'r') as f:
+        return f['data'][:], f['label'][:], f['pid'][:]
+
+def load_dataset(files):
+    D, L, S = [], [], []
+    for fn in files:
+        d,l,s = load_h5(fn)
+        D.append(d); L.append(l); S.append(s)
+    return (np.concatenate(D,axis=0),
+            np.concatenate(L,axis=0),
+            np.concatenate(S,axis=0))
+
+def uniform_sample(data, seg, N=2048):
+    out_d, out_s = [], []
+    for i in range(data.shape[0]):
+        n = data[i].shape[0]
+        idx = np.random.choice(n, N, replace=(n<N))
+        out_d.append(data[i][idx])
+        out_s.append(seg[i][idx])
+    return np.array(out_d), np.array(out_s)
+
+train_files = get_file_list(TRAIN_LIST_FILE)
+td, tl, ts  = load_dataset(train_files)
+train_data, train_seg = uniform_sample(td, ts, num_points)
+
+val_files   = get_file_list(VALIDATION_LIST_FILE)
+vd, vl, vs  = load_dataset(val_files)
+val_data, val_seg = uniform_sample(vd, vs, num_points)
+
+train_ds = TensorDataset(
+    torch.tensor(train_data, dtype=torch.float32),
+    torch.tensor(train_seg,  dtype=torch.long),
+    torch.tensor(tl,        dtype=torch.long),
+)
+val_ds   = TensorDataset(
+    torch.tensor(val_data, dtype=torch.float32),
+    torch.tensor(val_seg,  dtype=torch.long),
+    torch.tensor(vl,       dtype=torch.long),
+)
+train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=True)
+val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
+
+###### Label-to-part mapping ######
+object_part_mapping_numeric = {
+    0: [0,1,2,3],    1: [4,5],
+    2: [6,7],        3: [8,9,10,11],
+    4: [12,13,14,15],5: [16,17,18],
+    6: [19,20,21],   7: [22,23],
+    8: [24,25,26,27],9: [28,29],
+    10:[30,31,32,33,34,35],11:[36,37],
+    12:[38,39,40],   13:[41,42,43],
+    14:[44,45,46],   15:[47,48,49],
+}
+
+###### Jacobi KAN Layer (no in-place) ######
+class JacobiKANLayer(nn.Module):
+    def __init__(self, in_dim, out_dim, degree, a=ALPHA, b=BETA):
+        super().__init__()
+        self.in_dim, self.out_dim, self.degree = in_dim, out_dim, degree
+        self.a, self.b = a, b
+        self.coeffs = nn.Parameter(torch.empty(in_dim, out_dim, degree+1))
+        nn.init.normal_(self.coeffs, 0.0, 1.0/(in_dim*(degree+1)))
+
+    def forward(self, x):
+        # x: (B, C, N)
+        B,C,N = x.shape
+        x_t = torch.tanh(x.permute(0,2,1))  # (B, N, C)
+        D   = self.degree+1
+
+        # build list of polys instead of in-place
+        P0 = torch.ones(B, N, C, device=x.device)
+        polys = [P0]
+        if self.degree >= 1:
+            P1 = ((self.a-self.b) + (self.a+self.b+2)*x_t)/2
+            polys.append(P1)
+        for i in range(2, D):
+            A = (2*i+self.a+self.b-1)*(2*i+self.a+self.b)/((2*i)*(i+self.a+self.b))
+            Bc= (2*i+self.a+self.b-1)*(self.a**2-self.b**2)/((2*i)*(i+self.a+self.b)*(2*i+self.a+self.b-2))
+            Cc= -2*(i+self.a-1)*(i+self.b-1)*(2*i+self.a+self.b)/((2*i)*(i+self.a+self.b)*(2*i+self.a+self.b-2))
+            Pi = (A*x_t + Bc)*polys[i-1] + Cc*polys[i-2]
+            polys.append(Pi)
+
+        J = torch.stack(polys, dim=3)             # (B, N, C, D)
+        y = torch.einsum('bncd,cod->bno', J, self.coeffs)
+        return y.permute(0,2,1)                   # (B, out_dim, N)
+
+###### PointNetKAN block ######
+class PointNetKAN(nn.Module):
+    def __init__(self, in_ch, out_ch, scaling=SCALE):
+        super().__init__()
+        self.k4  = JacobiKANLayer(in_ch, int(128*scaling), poly_degree)
+        self.bn4 = nn.BatchNorm1d(int(128*scaling))
+        self.k5  = JacobiKANLayer(int(128*scaling), int(1024*scaling), poly_degree)
+        self.bn5 = nn.BatchNorm1d(int(1024*scaling))
+        self.k9  = JacobiKANLayer(int(1024*scaling)+int(128*scaling)+num_objects,
+                                  int(128*scaling), poly_degree)
+        self.bn9 = nn.BatchNorm1d(int(128*scaling))
+        self.k10 = JacobiKANLayer(int(128*scaling), out_ch, poly_degree)
+
+    def forward(self, x, cls_one_hot):
+        x = F.relu(self.bn4(self.k4(x)))
+        local4 = x
+        x = F.relu(self.bn5(self.k5(x)))
+        global_feat = F.adaptive_max_pool1d(x,1).repeat(1,1,num_points)
+        cls_exp    = cls_one_hot.view(-1, num_objects, 1).repeat(1,1,num_points)
+        x = torch.cat([local4, global_feat, cls_exp], dim=1)
+        x = F.relu(self.bn9(self.k9(x)))
+        return self.k10(x)
+
+###### PointNet++ utilities ######
+def square_distance(src, dst):
+    B,N,_ = src.shape; _,M,_ = dst.shape
+    dist = -2*torch.matmul(src, dst.permute(0,2,1))
+    dist += torch.sum(src**2,-1).view(B,N,1)
+    dist += torch.sum(dst**2,-1).view(B,1,M)
+    return dist
+
+def index_points(pts, idx):
+    B,N,C = pts.shape
+    idx = idx.clone().clamp(0, N-1)
+    flat = idx.reshape(B,-1)
+    bidx = torch.arange(B,device=pts.device).view(B,1).expand(-1,flat.size(1))
+    out  = pts[bidx,flat]
+    return out.view(*idx.shape,C)
+
+def farthest_point_sample(xyz, npoint):
+    B,N,_ = xyz.shape
+    cent = torch.zeros(B,npoint,dtype=torch.long,device=xyz.device)
+    dist = torch.full((B,N),1e10,device=xyz.device)
+    far  = torch.randint(0,N,(B,),device=xyz.device)
+    for i in range(npoint):
+        cent[:,i] = far
+        cpt = xyz[torch.arange(B),far].view(B,1,3)
+        d   = torch.sum((xyz-cpt)**2,-1)
+        mask= d<dist
+        dist[mask]=d[mask]
+        far = torch.max(dist,-1)[1]
+    return cent
+
+def query_ball_point(radius, nsample, xyz, new_xyz):
+    B,N,_ = xyz.shape; _,S,_ = new_xyz.shape
+    group_idx = torch.arange(N,device=xyz.device).view(1,1,N).expand(B,S,N).clone()
+    sqrd = square_distance(new_xyz, xyz)
+    group_idx[sqrd>radius**2] = N
+    group_idx = group_idx.sort(dim=-1)[0][:,:,:nsample]
+    return group_idx
+
+def sample_and_group(npoint, radius, nsample, xyz, points):
+    fps, new_xyz = farthest_point_sample(xyz,npoint), None
+    new_xyz      = index_points(xyz,fps)
+    idx          = query_ball_point(radius,nsample,xyz,new_xyz)
+    grouped_xyz  = index_points(xyz,idx) - new_xyz.view(-1,npoint,1,3)
+    if points is not None:
+        gp = index_points(points.permute(0,2,1), idx)
+        new_pts = torch.cat([grouped_xyz, gp], dim=-1)
+    else:
+        new_pts = grouped_xyz
+    return new_xyz, new_pts.permute(0,3,2,1)
+
+def sample_and_group_all(xyz, points):
+    B,N,C = xyz.shape
+    new_xyz    = torch.zeros(B,1,C,device=xyz.device)
+    grouped    = xyz.view(B,1,N,C)
+    if points is not None:
+        pg = points.permute(0,2,1).view(B,1,N,-1)
+        all_pts = torch.cat([grouped, pg], dim=-1)
+    else:
+        all_pts = grouped
+    return new_xyz, all_pts.permute(0,3,2,1)
+
+###### Set Abstraction ######
+class PointNetSetAbstraction(nn.Module):
+    def __init__(self, npoint, radius, nsample, in_ch, mlp, group_all=False):
+        super().__init__()
+        self.group_all = group_all
+        self.npoint, self.radius, self.nsample = npoint, radius, nsample
+        self.mlps, self.bns = nn.ModuleList(), nn.ModuleList()
+        last_ch = in_ch+3
+        for out_ch in mlp:
+            self.mlps.append(JacobiKANLayer(last_ch,out_ch,poly_degree))
+            self.bns.append(nn.BatchNorm1d(out_ch))
+            last_ch = out_ch
+
+    def forward(self, xyz, points):
+        if self.group_all:
+            new_xyz, new_pts4d = sample_and_group_all(xyz, points)
+        else:
+            new_xyz, new_pts4d = sample_and_group(self.npoint,self.radius,self.nsample,xyz,points)
+        x = new_pts4d
+        for kan,bn in zip(self.mlps,self.bns):
+            B,C,S,P = x.shape
+            view = x.contiguous().view(B,C,S*P)
+            out  = bn(kan(view))
+            x    = out.contiguous().view(B,kan.out_dim,S,P)
+        # max-pool and break view
+        new_pts = torch.max(x,2)[0].clone()
+        return new_xyz, new_pts
+
+###### Feature Propagation ######
+class PointNetFeaturePropagation(nn.Module):
+    def __init__(self, in_ch, mlp):
+        super().__init__()
+        self.convs, self.bns = nn.ModuleList(), nn.ModuleList()
+        last = in_ch
+        for out_ch in mlp:
+            self.convs.append(nn.Conv1d(last,out_ch,1))
+            self.bns.append(nn.BatchNorm1d(out_ch))
+            last = out_ch
+
+    def forward(self, xyz1, xyz2, pts1, pts2):
+        B,N,_ = xyz1.shape; _,S,_ = xyz2.shape
+        if S==1:
+            interp = pts2.repeat(1,1,N)
+        else:
+            d, idx = square_distance(xyz1,xyz2).sort(dim=-1)
+            d, idx = d[:,:,:3], idx[:,:,:3]
+            w = 1.0/(d+1e-8)
+            w = w/torch.sum(w,2,keepdim=True)
+            sampled = index_points(pts2.permute(0,2,1), idx)
+            interp = torch.sum(sampled * w.view(B,N,3,1),2).permute(0,2,1)
+        if pts1 is not None:
+            new = torch.cat([pts1, interp], dim=1)
+        else:
+            new = interp
+        for conv,bn in zip(self.convs,self.bns):
+            new = F.relu(bn(conv(new)))
+        return new
+
+###### Part Segmentation Net ######
+class PointNet2PartSeg(nn.Module):
+    def __init__(self, n_classes, n_parts):
+        super().__init__()
+        self.sa1 = PointNetSetAbstraction(512,0.2,32,   0,[64,64,128])
+        self.sa2 = PointNetSetAbstraction(128,0.4,64, 128,[128,128,256])
+        self.sa3 = PointNetSetAbstraction(None,None,None,256,[256,512,1024], group_all=True)
+
+        self.fp3 = PointNetFeaturePropagation(256+1024,[256,256])
+        self.fp2 = PointNetFeaturePropagation(128+256, [256,256])
+        self.fp1 = PointNetFeaturePropagation(256+3,   [256,128,128])
+
+        self.conv1 = nn.Conv1d(128+num_objects,128,1)
+        self.bn1   = nn.BatchNorm1d(128)
+        self.drop1 = nn.Dropout(0.5)
+        self.conv2 = nn.Conv1d(128, n_parts,1)
+
+    def forward(self, x, cls_one_hot):
+        B,C,N = x.size()
+        xyz = x.permute(0,2,1)
+
+        l1_xyz, l1_pts = self.sa1(xyz, None)
+        l2_xyz, l2_pts = self.sa2(l1_xyz, l1_pts)
+        l3_xyz, l3_pts = self.sa3(l2_xyz, l2_pts)
+
+        fp3 = self.fp3(l2_xyz, l3_xyz, l2_pts, l3_pts)
+        fp2 = self.fp2(l1_xyz, l2_xyz, l1_pts, fp3)
+        fp1 = self.fp1(xyz,    l1_xyz,    x,    fp2)
+
+        cls_exp = cls_one_hot.view(B,num_objects,1).repeat(1,1,N)
+        feat    = torch.cat([fp1, cls_exp], dim=1)
+        x1      = F.relu(self.bn1(self.conv1(feat)))
+        x1      = self.drop1(x1)
+        return self.conv2(x1)
+
+###### Helpers ######
+def one_hot_encode(lbls, K):
+    return torch.eye(K,device=lbls.device)[lbls]
+
+def compute_loss(outputs, seg_lbls, obj_lbls, mapping, criterion):
+    loss = 0.0
+    for b in range(outputs.size(0)):
+        parts = mapping[int(obj_lbls[b])]
+        logits = outputs[b,parts].permute(1,0)  # (N, len(parts))
+        labs   = seg_lbls[b]
+        remap  = torch.zeros_like(labs)
+        for i,p in enumerate(parts):
+            remap[labs==p] = i
+        loss += criterion(logits, remap)
+    return loss
+
+###### Train setup ######
+model     = PointNet2PartSeg(num_objects, output_channels).to(device)
+criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max_epochs)
+
+best_val = float('inf')
+best_pth = os.path.join(os.getcwd(), 'best_model.pth')
+
+for epoch in range(max_epochs):
+    model.train()
+    t_loss = 0.0
+    for data, seg_lbl, obj_lbl in train_loader:
+        pts = data.to(device).transpose(1,2)
+        seg = seg_lbl.to(device)
+        obj = obj_lbl.to(device)
+        oneh= one_hot_encode(obj, num_objects)
+
+        optimizer.zero_grad()
+        preds = model(pts, oneh)
+        loss  = compute_loss(preds, seg, obj, object_part_mapping_numeric, criterion)
+        loss.backward()
+        optimizer.step()
+        t_loss += loss.item()
+
+    avg_t = t_loss/len(train_loader)
+
+    model.eval()
+    v_loss = 0.0
+    with torch.no_grad():
+        for data, seg_lbl, obj_lbl in val_loader:
+            pts = data.to(device).transpose(1,2)
+            seg = seg_lbl.to(device)
+            obj = obj_lbl.to(device)
+            oneh= one_hot_encode(obj, num_objects)
+            v_loss += compute_loss(
+                model(pts, oneh),
+                seg, obj,
+                object_part_mapping_numeric,
+                criterion
+            ).item()
+
+    avg_v = v_loss/len(val_loader)
+    print(f"Epoch {epoch+1}/{max_epochs}  Train {avg_t:.4f}  Val {avg_v:.4f}")
+
+    if avg_v < best_val and epoch>9:
+        best_val = avg_v
+        torch.save(model.state_dict(), best_pth)
+        print(f"  Saved best model (val {best_val:.4f})")
+
+    scheduler.step()

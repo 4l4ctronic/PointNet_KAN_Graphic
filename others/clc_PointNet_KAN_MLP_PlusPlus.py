@@ -21,7 +21,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 import h5py
 
 # Parameter setup
-NUM_POINTS = 2048 #1024 
+NUM_POINTS = 2048 
 NUM_CLASSES = 40  # ModelNet40
 BATCH_SIZE = 64 
 poly_degree = 2   # Polynomial degree of Jacobi Polynomial

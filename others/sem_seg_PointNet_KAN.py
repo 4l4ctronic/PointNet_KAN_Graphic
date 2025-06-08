@@ -216,10 +216,6 @@ def train(train_areas):
 
     model = PointNetKAN(9,NUM_CLASSES,SCALE).to(DEVICE)
 
-    #optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
-    #criterion = nn.CrossEntropyLoss()
-
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)

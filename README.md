@@ -1,8 +1,8 @@
 # PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets
 
-![pic](./network.png)
-![pic](./part_seg.png)
-![pic](./semantic_seg.png)
+![pic](./network.png) <br>
+![pic](./part_seg.png) <br>
+![pic](./semantic_seg.png) <br>
 
 **Author:** Ali Kashefi (kashefi@stanford.edu) 
 

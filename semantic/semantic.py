@@ -1,5 +1,20 @@
-# Libraries
+# In The Name of God
+##### PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets #####
 
+#Author: Ali Kashefi (kashefi@stanford.edu)
+
+##### Citation #####
+#If you use the code, please cite the following journal paper: 
+#[PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets]
+# https://arxiv.org/abs/2410.10084
+
+#@article{kashefi2024PointNetKAN,
+#title={PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets},
+#author={Kashefi, Ali},
+#journal={arXiv preprint arXiv:2410.10084},
+#year={2024}}
+
+###### Libraries ######
 import os
 import h5py
 import time

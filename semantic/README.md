@@ -6,7 +6,7 @@
 First, run the following script to download the Stanford 3D semantic parsing dataset:
 
 ```bash
-python downloadModelNet40.py
+python downloadS3DIS.py
 ```
 
 **Note**: In `semantic.py`, make sure to set the correct path for the variables `BASE_DIR` and `H5_SUBDIR`, which should point to the location where the Stanford 3D semantic parsing data is downloaded.

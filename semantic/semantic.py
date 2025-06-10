@@ -28,12 +28,12 @@ torch.backends.cudnn.benchmark = True
 
 #Parameter setup
 
-BASE_DIR       = '/scratch/users/kashefi/KANmlp/S3D'
+BASE_DIR       = '/S3D'
 H5_SUBDIR      = 'indoor3d_sem_seg_hdf5_data'
 DATA_DIR       = os.path.join(BASE_DIR, H5_SUBDIR)
 ALL_H5_LIST    = os.path.join(DATA_DIR, 'all_files.txt')
 ROOM_LIST_FILE = os.path.join(DATA_DIR, 'room_filelist.txt')
-NUM_CLASSES    = 13
+NUM_CLASSES    = 13 # Stanford 3D Semantic Parsing Data Set
 BATCH_SIZE     = 16 # or 32 if memory permits
 EPOCHS         = 100
 DEVICE         = torch.device("cuda" if torch.cuda.is_available() else "cpu")

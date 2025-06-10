@@ -250,8 +250,8 @@ def evaluate(model, test_areas):
 # Main: Train on Areas 1,2,3,4,6; Test on Area 5 [to use k-fold strategy, one should change the train_areas and test_areas]
 # -----------------------------
 if __name__ == '__main__':
-    train_areas = {'Area_1', 'Area_2', 'Area_3', 'Area_4', 'Area_5'}
-    test_areas = {'Area_6'}
+    train_areas = {'Area_1', 'Area_2', 'Area_3', 'Area_4', 'Area_6'}
+    test_areas = {'Area_5'}
 
     model = train(train_areas)
     torch.save(model.state_dict(), 'model.pth')

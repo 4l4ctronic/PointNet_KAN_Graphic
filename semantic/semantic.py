@@ -1,3 +1,5 @@
+# Libraries
+
 import os
 import h5py
 import time
@@ -7,42 +9,31 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
-# -----------------------------
-# Enable CuDNN Optimization
-# -----------------------------
 torch.backends.cudnn.benchmark = True
 
-# -----------------------------
-# Hyperparameters & Paths
-# -----------------------------
+#Parameter setup
+
 BASE_DIR       = '/scratch/users/kashefi/KANmlp/S3D'
 H5_SUBDIR      = 'indoor3d_sem_seg_hdf5_data'
 DATA_DIR       = os.path.join(BASE_DIR, H5_SUBDIR)
 ALL_H5_LIST    = os.path.join(DATA_DIR, 'all_files.txt')
 ROOM_LIST_FILE = os.path.join(DATA_DIR, 'room_filelist.txt')
 NUM_CLASSES    = 13
-BATCH_SIZE     = 16
+BATCH_SIZE     = 16 # or 32 if memory permits
 EPOCHS         = 100
 DEVICE         = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 SCALE = 5.0 # To control the size of tensor A in the manuscript
 ALPHA = -0.5 # \alpha in Jacaboi Polynomial
 BETA = -0.5 # \beta in Jacaboi Polynomial
 poly_degree = 2 # Polynomial degree of Jacaboi Polynomial
  
-
-# -----------------------------
-# Utility to read any .txt list
-# -----------------------------
+###### Function ######
 def read_list(txt_path):
     with open(txt_path, 'r') as f:
         return [line.strip() for line in f if line.strip()]
 
-
-# -----------------------------
-# Dataset that preloads all data
-# -----------------------------
+###### Object ######
 class S3DISHDF5Dataset(Dataset):
     def __init__(self, h5_list_txt, room_list_txt, areas):
         basenames = read_list(h5_list_txt)
@@ -75,7 +66,6 @@ class S3DISHDF5Dataset(Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx], self.labels[idx]
-
 
 ###### Object: KANshared (i.e., shared KAN) ######
 class JacobiKANLayer(nn.Module):
@@ -110,7 +100,6 @@ class JacobiKANLayer(nn.Module):
         y = torch.einsum('bids,iod->bos', jacobi, self.jacobi_coeffs) 
 
         return y
-
 
 ###### Object: PointNetKAN for semantic segmentation (i.e., PointNet-KAN) ######
 class PointNetKAN(nn.Module):
@@ -150,10 +139,7 @@ class PointNetKAN(nn.Module):
 
         return x
 
-
-# -----------------------------
-# GPU-side mIoU without numpy
-# -----------------------------
+###### Function ######
 def compute_mIoU_torch(preds, labels, num_classes):
     p = preds.view(-1)
     l = labels.view(-1)
@@ -166,10 +152,7 @@ def compute_mIoU_torch(preds, labels, num_classes):
         ious.append(inter/union if union > 0 else torch.tensor(1.0, device=p.device))
     return torch.stack(ious).mean().item()
 
-
-# -----------------------------
-# Training & Evaluation
-# -----------------------------
+###### Function ######
 def train(train_areas):
     ds = S3DISHDF5Dataset(ALL_H5_LIST, ROOM_LIST_FILE, train_areas)
     loader = DataLoader(
@@ -222,7 +205,7 @@ def train(train_areas):
 
     return model
 
-
+###### Function ######
 def evaluate(model, test_areas):
     ds = S3DISHDF5Dataset(ALL_H5_LIST, ROOM_LIST_FILE, test_areas)
     loader = DataLoader(ds, batch_size=BATCH_SIZE, num_workers=4, pin_memory=True)
@@ -247,9 +230,9 @@ def evaluate(model, test_areas):
     miou = compute_mIoU_torch(torch.cat(all_preds), torch.cat(all_labels), NUM_CLASSES)
     print(f"\nEvaluation ? Acc: {acc:.4f} | mIoU: {miou:.4f}")
 
-
+###### Function ######
 # -----------------------------
-# Main: Train on Areas 1,2,3,4,6; Test on Area 5
+# Main: Train on Areas 1,2,3,4,6; Test on Area 5 [to use k-fold strategy, one should change the train_areas and test_areas]
 # -----------------------------
 if __name__ == '__main__':
     train_areas = {'Area_1', 'Area_2', 'Area_3', 'Area_4', 'Area_5'}

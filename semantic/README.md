@@ -3,13 +3,13 @@
 
 **Step 1: Download the Data**
 
-First, run the following script to download the ModelNet40 dataset:
+First, run the following script to download the Stanford 3D semantic parsing dataset:
 
 ```bash
 python downloadModelNet40.py
 ```
 
-**Note**: In `classification.py`, make sure to set the correct path for the variable `direction`, which should point to the location where the ModelNet40 data is downloaded.
+**Note**: In `semantic.py`, make sure to set the correct path for the variables `BASE_DIR` and `H5_SUBDIR`, which should point to the location where the Stanford 3D semantic parsing data is downloaded.
 
 **Step 2: Run the Semantic Segmentation Script**
 

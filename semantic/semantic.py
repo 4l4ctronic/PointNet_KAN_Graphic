@@ -116,7 +116,7 @@ class JacobiKANLayer(nn.Module):
 
         return y
 
-###### Object: PointNetKAN for semantic segmentation (i.e., PointNet-KAN) ######
+###### Object: PointNet-KAN for semantic segmentation ######
 class PointNetKAN(nn.Module):
     def __init__(self, input_channels, output_channels, scaling=SCALE):
         super(PointNetKAN, self).__init__()

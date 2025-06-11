@@ -8,6 +8,8 @@ First, run the following script to download the Stanford 3D semantic parsing dat
 ```bash
 python downloadS3DIS.py
 ```
+Alternatively, you can download the dataset from the following link: <br>
+https://www.kaggle.com/datasets/bhargavrko619/indoor3d-sem-seg-hdf5-data
 
 **Note**: In `semantic.py`, make sure to set the correct path for the variables `BASE_DIR` and `H5_SUBDIR`, which should point to the location where the Stanford 3D semantic parsing data is downloaded.
 

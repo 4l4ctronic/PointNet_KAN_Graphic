@@ -26,8 +26,7 @@ import torch.optim as optim
 
 torch.backends.cudnn.benchmark = True
 
-#Parameter setup
-
+###### Parameter Setup ######
 BASE_DIR       = '/S3D'
 H5_SUBDIR      = 'indoor3d_sem_seg_hdf5_data'
 DATA_DIR       = os.path.join(BASE_DIR, H5_SUBDIR)

@@ -60,16 +60,16 @@ class S3DISHDF5Dataset(Dataset):
         counter = 0
         for path in self.paths:
             with h5py.File(path, 'r') as f:
-                data_all = f['data'][:]   # [N, 4096, 9]
-                label_all = f['label'][:] # [N, 4096, 1]
+                data_all = f['data'][:]  
+                label_all = f['label'][:]
 
             for i in range(data_all.shape[0]):
                 room = rooms[counter]
                 counter += 1
                 area = '_'.join(room.split('_')[:2])
                 if area in areas:
-                    self.data.append(torch.from_numpy(data_all[i]).float())         # [4096, 9]
-                    self.labels.append(torch.from_numpy(label_all[i].squeeze()).long())  # [4096]
+                    self.data.append(torch.from_numpy(data_all[i]).float())         
+                    self.labels.append(torch.from_numpy(label_all[i].squeeze()).long()) 
 
         assert counter == len(rooms), (
             f"Mismatch: expected {len(rooms)} room entries, but got {counter}"

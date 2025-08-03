@@ -11,11 +11,13 @@ If you use the code, please cite the following article: <br>
 
 **[PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets](https://arxiv.org/abs/2410.10084)**
 
-    @article{kashefi2024PointNetKAN,
-      title={PointNet with KAN versus PointNet with MLP for 3D Classification and Segmentation of Point Sets},
+    @article{kashefi2025PointNetKANgraphics,
+      title={Pointnet with kan versus pointnet with mlp for 3d classification and segmentation of point sets},
       author={Kashefi, Ali},
-      journal={arXiv preprint arXiv:2410.10084},
-      year={2024}}
+      journal={Computers \& Graphics},
+      pages={104319},
+      year={2025},
+      publisher={Elsevier}}
 
 **Abstract** <be>
 Kolmogorov-Arnold Networks (KANs) have recently gained attention as an alternative to traditional Multilayer Perceptrons (MLPs) in deep learning frameworks. KANs have been integrated into various deep learning architectures such as convolutional neural networks, graph neural networks, and transformers, with their performance evaluated. However, their effectiveness within point-cloud-based neural networks remains unexplored. To address this gap, we incorporate KANs into PointNet for the first time to evaluate their performance on 3D point cloud classification and segmentation tasks. Specifically, we introduce PointNet-KAN, built upon two key components. First, it employs KANs instead of traditional MLPs. Second, it retains the core principle of PointNet by using shared KAN layers and applying symmetric functions for global feature extraction, ensuring permutation invariance with respect to the input features. In traditional MLPs, the goal is to train the weights and biases with fixed activation functions; however, in KANs, the goal is to train the activation functions themselves. We use Jacobi polynomials to construct the KAN layers. We extensively and systematically evaluate PointNet-KAN across various polynomial degrees and special types such as the Lagrange, Chebyshev, and Gegenbauer polynomials. Our results show that PointNet-KAN achieves competitive performance compared to PointNet with MLPs on benchmark datasets for 3D object classification and part and semantic segmentation, despite employing a shallower and simpler network architecture. We also study a hybrid PointNet model incorporating both KAN and MLP layers. We hope this work serves as a foundation and provides guidance for integrating KANs, as an alternative to MLPs, into more advanced point cloud processing architectures.

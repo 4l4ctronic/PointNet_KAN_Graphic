@@ -46,7 +46,7 @@ ALPHA = 1.0 # \alpha in Jacaboi Polynomial
 BETA = 1.0 # \beta in Jacaboi Polynomial
 SCALE = 3.0 # To control the size of tensor A in the manuscript
 MAX_EPOCHS = 300
-direction = '/ModelNet40'
+direction = 'autodl-fs/Data_point/modelnet40_ply_hdf5_2048/modelnet40_ply_hdf5_2048'
 
 ###### Function: parse_dataset ######
 def parse_dataset(num_points=NUM_POINTS):

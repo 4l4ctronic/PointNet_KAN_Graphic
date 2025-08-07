@@ -57,23 +57,23 @@ def parse_dataset(num_points=NUM_POINTS):
     class_map = {}
 
     DATA_DIR = direction 
-    folders = glob.glob(os.path.join(DATA_DIR, "*"))
+    folders = glob.glob(os.path.join(DATA_DIR, "*"))#列出该目录下的所有子文件夹，每个子文件夹对应一个物体类别。
 
     for i, folder in enumerate(folders):
-        print("processing class: {}".format(os.path.basename(folder)))
+        print("processing class: {}".format(os.path.basename(folder)))#在屏幕上打印一条状态信息，告诉用户当前正在处理哪个类别（文件夹）。
         class_map[i] = folder.split("/")[-1]
         train_files = glob.glob(os.path.join(folder, "train/*"))
         test_files = glob.glob(os.path.join(folder, "test/*"))
 
         for f in train_files:
-            mesh = trimesh.load(f)
-            points, face_indices = mesh.sample(num_points, return_index=True)
-            normals = mesh.face_normals[face_indices]
+            mesh = trimesh.load(f)#加载网格模型,包含顶点、面片、法向量等信息。
+            points, face_indices = mesh.sample(num_points, return_index=True)#三维坐标数组 points，形状 [num_points, 3]。
+            normals = mesh.face_normals[face_indices]#法向量数组 normals，形状 [num_points, 3]。
             
-            points_with_normals = np.concatenate([points, normals], axis=1)
+            points_with_normals = np.concatenate([points, normals], axis=1)#将三维坐标和法向量拼接在一起，形成一个包含位置和方向信息的点云数据。维度[num_points, 6]，每一行为 [x,y,z,nx,ny,nz]。
             
-            train_points_with_normals.append(points_with_normals)
-            train_labels.append(i)
+            train_points_with_normals.append(points_with_normals)#将当前点云（含法向量）加入训练集列表中
+            train_labels.append(i)#将当前点云的类别标签（i）加入训练集标签列表中
 
         for f in test_files:
             mesh = trimesh.load(f)
@@ -85,10 +85,10 @@ def parse_dataset(num_points=NUM_POINTS):
             test_points_with_normals.append(points_with_normals)
             test_labels.append(i)
 
-    train_points = torch.tensor(np.array(train_points_with_normals), dtype=torch.float32)
-    test_points = torch.tensor(np.array(test_points_with_normals), dtype=torch.float32)
-    train_labels = torch.tensor(np.array(train_labels), dtype=torch.long)
-    test_labels = torch.tensor(np.array(test_labels), dtype=torch.long)
+    train_points = torch.tensor(np.array(train_points_with_normals), dtype=torch.float32)#形状分别为 [N_train, 1024, 6] 和 [N_test, 1024, 6] 的浮点张量，每个样本包含 1024 个点的 (x,y,z,nx,ny,nz) 特征。
+    test_points = torch.tensor(np.array(test_points_with_normals), dtype=torch.float32)#形状分别为 [N_train, 1024, 6] 和 [N_test, 1024, 6] 的浮点张量，每个样本包含 1024 个点的 (x,y,z,nx,ny,nz) 特征。
+    train_labels = torch.tensor(np.array(train_labels), dtype=torch.long)#形状分别为 [N_train] 和 [N_test] 的整数张量，每个样本对应一个类别标签。
+    test_labels = torch.tensor(np.array(test_labels), dtype=torch.long)#形状分别为 [N_train] 和 [N_test] 的整数张量，每个样本对应一个类别标签。
 
     return train_points, test_points, train_labels, test_labels, class_map
 
@@ -103,15 +103,15 @@ class PointCloudDataset(Dataset):
         
         for i in range(self.points.shape[0]):
             
-            spatial_coords = self.points[i, :, :3]  
-            normals = self.points[i, :, 3:] 
-            
-            centroid = spatial_coords.mean(axis=0, keepdims=True)
+            spatial_coords = self.points[i, :, :3]  # 取第 i 个点云的 (x,y,z) 坐标
+            normals = self.points[i, :, 3:]  # 取第 i 个点云的 (nx,ny,nz) 法向量
+            # 1) 中心化：减去质心
+            centroid = spatial_coords.mean(axis=0, keepdims=True)#
             spatial_coords -= centroid
-
+# 2) 归一化到单位球：除以最远点的距离
             furthest_distance = torch.max(torch.sqrt(torch.sum(spatial_coords ** 2, axis=1, keepdims=True)))
             spatial_coords /= furthest_distance
-
+ # 3) 把归一化后的坐标和原始法向量拼回去
             self.points[i] = torch.cat((spatial_coords, normals), dim=1)
 
     def __len__(self):

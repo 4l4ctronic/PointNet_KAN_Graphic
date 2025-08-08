@@ -224,30 +224,30 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = PointNetKAN(input_channels=FEATURE, output_channels=NUM_CLASSES, scaling = SCALE).to(device) 
 
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0, amsgrad=False)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+criterion = nn.CrossEntropyLoss()#交叉熵损失函数
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0, amsgrad=False)#Adam优化器
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)#学习率衰减
 
 ###### Training ######
 for epoch in range(MAX_EPOCHS):
-    model.train() 
+    model.train() #设置模型为训练模式
     running_loss = 0.0
     correct = 0
     total = 0
 
     for points, labels in train_loader:
-        points, labels = points.to(device), labels.to(device)
+        points, labels = points.to(device), labels.to(device)#将点云数据和标签移动到GPU
 
-        points = points.transpose(1, 2)
+        points = points.transpose(1, 2)#交换维度，将点云数据从[batch_size, num_points, feature_dim]转换为[batch_size, feature_dim, num_points]
 
-        optimizer.zero_grad()
+        optimizer.zero_grad()#清空梯度
 
-        outputs = model(points)
+        outputs = model(points)#前向传播计算输出
       
-        loss = criterion(outputs, labels)
+        loss = criterion(outputs, labels)#计算损失
 
-        loss.backward()
-        optimizer.step()
+        loss.backward()#反向传播计算梯度
+        optimizer.step()#根据梯度更新模型参数
 
         running_loss += loss.item() * points.size(0)
         _, predicted = torch.max(outputs, 1)
